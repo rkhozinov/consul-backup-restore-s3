@@ -1,6 +1,6 @@
 FROM gliderlabs/alpine:3.2
 
-ADD consul-backup /usr/bin/consul-backup
+ADD consul-backup-restore /usr/bin/consul-backup-restore
 ADD requirements /requirements
 
 RUN apk add --update \
