@@ -18,7 +18,6 @@ Usage: consul-backup-restore  -r s3://some/path/to/file"
 -r | --restore   - Use this if you want to restore, only use
 
 restore as argument use the s3://path/to/filename url"
-
 ```
 
 Running the container
