@@ -12,4 +12,4 @@ RUN apk add --update \
 
 RUN pip install --upgrade pip && pip install -r /requirements
 
-ENTRYPOINT ["/usr/bin/consul-backup"]
+ENTRYPOINT ["/usr/bin/consul-backup-restore"]

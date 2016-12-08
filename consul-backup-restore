@@ -1,0 +1,81 @@
+#! /bin/bash
+set -e
+
+help () {
+  echo "consul-backup"
+  echo "Backups consul to a s3 bucket or restore. You must provde all arguments for either backup or restore"
+  echo
+  echo "Usage: consul-backup-restore  -b s3://prefix/to/path -f fileprefix"
+  echo "Usage: consul-backup-restore  -r s3://some/path/to/file"
+  echo
+  echo "-b | --s3bucket  - The s3 bucket path to use, no trailing slash"
+  echo "-f | --filename  - The prefix for the filename."
+  echo "-r | --restore   - Use this if you want to restore, only use restore as argument use the s3://path/to/filename url"
+}
+
+RESTORE=0
+COUNT=$#
+
+while [[ $# > 1 ]]
+do
+key="$1"
+
+case $key in
+    -b|--s3bucket)
+    S3_URL="$2"
+    shift
+    ;;
+    -f|--filename)
+    FILENAME="$2"$(date +%Y%m%d-%H%M%s )
+    shift
+    ;;
+    -r|--restore)
+    RESTORE="$2"
+    shift
+    ;;
+    *)
+    ;;
+esac
+shift
+done
+
+
+if [[ $COUNT -ne 4 && $RESTORE = 0 ]] ; then
+  echo 'ERROR: All 2 arguments must be specified in case of backup'
+  help
+  exit 1
+elif [[ $COUNT -ne 2 && $RESTORE != 0 ]] ; then     
+  echo 'ERROR: All 3 arguments must be specified in case of restore'
+  help
+  exit 1
+fi
+
+API_HOST=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
+API_PORT=8500
+S3_URL="$S3_URL"
+FILENAME="$FILENAME"
+
+
+if [ "$RESTORE" != 0 ]; then
+  echo read from file $S3_URL and copy to /tmp/backup
+  rm -f /tmp/backup
+  aws s3 cp "$RESTORE" /tmp/backup
+  echo aws s3 cp "$RESTORE" /tmp/backup
+  consulate --api-host "$API_HOST" --api-port "$API_PORT" kv restore -b -f "/tmp/backup"
+  echo loaded
+else
+  echo $API_HOST
+  if [ $(curl  -s http://$API_HOST:$API_PORT/v1/status/leader | sed 's/"//g' | cut -d : -f 1) != "$API_HOST" ]; then
+    echo "This host is not the pack leader, not backing up"
+    exit 1;
+  fi
+
+  #Dump Keys
+  consulate --api-host "$API_HOST" --api-port "$API_PORT" kv backup -b -f "$FILENAME"
+
+  #Upload to s3
+  aws s3 cp "$FILENAME" "$S3_URL/$FILENAME"
+
+  #Remove file
+  rm "$FILENAME"
+fi
