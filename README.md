@@ -1,5 +1,5 @@
 # docker-consul-backup-s3
-Docker container to backup consul and upload it to s3
+Docker container to backup consul and upload it to s3, modified version of https://github.com/kailunshi/consul-backup
 
 Info/Usage
 -----
